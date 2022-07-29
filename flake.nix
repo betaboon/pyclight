@@ -16,9 +16,7 @@
       overlay = nixpkgs.lib.composeManyExtensions [
         poetry2nix.overlay
         (final: prev: {
-          pyclight = prev.poetry2nix.mkPoetryApplication {
-            projectDir = ./.;
-          };
+          pyclight = prev.callPackage ./default.nix { };
         })
       ];
     } // (flake-utils.lib.eachDefaultSystem (system:
