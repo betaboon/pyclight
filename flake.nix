@@ -12,22 +12,26 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, poetry2nix }:
-    {
-      overlay = nixpkgs.lib.composeManyExtensions [
-        poetry2nix.overlay
-        (final: prev: {
-          pyclight = prev.callPackage ./default.nix { };
-        })
-      ];
-    } // (flake-utils.lib.eachDefaultSystem (system:
+    (flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [ self.overlay ];
-        };
+        # see https://github.com/nix-community/poetry2nix/tree/master#api for more functions and examples.
+        inherit (poetry2nix.legacyPackages.${system}) mkPoetryApplication;
+        pkgs = nixpkgs.legacyPackages.${system};
       in
-      rec {
-        apps.pyclight = pkgs.pyclight;
-        defaultApp = apps.pyclight;
-      }));
+      {
+        packages = {
+          pyclight = mkPoetryApplication { projectDir = self; };
+          default = self.packages.${system}.pyclight;
+        };
+
+        devShells.default = pkgs.mkShell {
+          packages = [ poetry2nix.packages.${system}.poetry ];
+        };
+      })) // {
+
+      overlays.default = final: prev: {
+        pyclight = self.packages.${prev.system}.pyclight;
+      };
+
+    };
 }
